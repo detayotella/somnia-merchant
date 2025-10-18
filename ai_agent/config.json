@@ -1,0 +1,17 @@
+{
+  "rpc_url": "https://dream-rpc.somnia.network/",
+  "contract_address": "0x6937F70036E499f56E819eb25658514D7d62C2F6",
+  "merchant_owner": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
+  "network": "somnia-testnet",
+  "private_key_env": "AI_AGENT_PRIVATE_KEY",
+  "poll_interval_seconds": 30,
+  "min_profit_threshold": 0.2,
+  "model": "gemini-2.0-flash",
+  "use_llm": true,
+  "enable_notifications": true,
+  "backend_api": "http://localhost:8000/api/logs",
+  "gas": {
+    "max_priority_gwei": 1.5,
+    "max_fee_gwei": 35
+  }
+}

@@ -1,0 +1,119 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --font-inter: 'Inter', sans-serif;
+    --font-display: 'Playfair Display', serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-textPrimary min-h-screen antialiased font-sans;
+    background-image: 
+      radial-gradient(at 10% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 40%),
+      radial-gradient(at 90% 80%, rgba(205, 127, 50, 0.06) 0%, transparent 40%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  /* Premium Button Styles */
+  .btn-primary {
+    @apply relative px-8 py-3 font-semibold text-background bg-gradient-luxury rounded-xl overflow-hidden;
+    @apply transition-all duration-300 hover:shadow-glowStrong hover:scale-[1.02] active:scale-[0.98];
+    @apply border border-primary/30;
+  }
+
+  .btn-primary::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    @apply transform -translate-x-full transition-transform duration-700;
+  }
+
+  .btn-primary:hover::before {
+    @apply translate-x-full;
+  }
+
+  /* Glass Card Premium */
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl border border-borderLight bg-surface/80 backdrop-blur-xl;
+    @apply shadow-card transition-all duration-500;
+  }
+
+  .glass-card:hover {
+    @apply shadow-cardHover border-borderAccent/30;
+  }
+
+  .glass-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-subtle pointer-events-none;
+  }
+
+  /* Luxury Border Animation */
+  .border-beam {
+    @apply relative overflow-hidden;
+  }
+
+  .border-beam::after {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent;
+    @apply animate-border-beam;
+  }
+
+  /* Custom Scrollbar */
+  .scrollbar-luxury::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .scrollbar-luxury::-webkit-scrollbar-track,
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  .scrollbar-luxury::-webkit-scrollbar-thumb,
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gradient-to-b from-primary to-secondary rounded-full;
+  }
+
+  .scrollbar-luxury::-webkit-scrollbar-thumb:hover,
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply from-primaryLight to-secondaryLight;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-primary/20 text-textPrimary;
+  }
+
+  /* Link Styles */
+  a {
+    @apply text-primary hover:text-primaryLight transition-colors duration-200;
+  }
+
+  /* Premium Badge */
+  .badge-gold {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full;
+    @apply bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30;
+    @apply text-sm font-semibold text-primary;
+  }
+
+  /* Stat Number */
+  .stat-number {
+    @apply font-display text-4xl font-bold bg-clip-text text-transparent;
+    @apply bg-gradient-to-br from-primary via-accent to-secondary;
+    background-size: 200% 200%;
+    @apply animate-shimmer;
+  }
+}
+
+/* Keep RainbowKit default styles - don't override */
