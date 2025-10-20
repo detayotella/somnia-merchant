@@ -7,6 +7,9 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![Python](https://img.shields.io/badge/Python-3.13-blue)](https://python.org/)
 
+**🎉 STATUS: ✅ FULLY OPERATIONAL** | [View Detailed Status](./AGENT_STATUS.md)  
+The AI Agent is live on Somnia Testnet, autonomously managing merchants and executing transactions!
+
 ---
 
 ## 📖 What is This Project?
