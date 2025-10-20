@@ -5,7 +5,7 @@
   "merchant_owner": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
   "network": "somnia-testnet",
   "private_key_env": "AI_AGENT_PRIVATE_KEY",
-  "poll_interval_seconds": 30,
+  "poll_interval_seconds": 300,
   "min_profit_threshold": 0.2,
   "model": "gemini-2.0-flash",
   "use_llm": true,
