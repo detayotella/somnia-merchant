@@ -7,8 +7,37 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![Python](https://img.shields.io/badge/Python-3.13-blue)](https://python.org/)
 
-**🎉 STATUS: ✅ FULLY OPERATIONAL** | [View Detailed Status](./AGENT_STATUS.md)  
-The AI Agent is live on Somnia Testnet, autonomously managing merchants and executing transactions!
+## 🤖 Agent Status
+
+✅ **OPERATIONAL** - AI agent successfully running in V2 factory mode with verified on-chain transactions.
+
+---
+
+## 🚀 Quick Deploy
+
+### Deploy Frontend to Vercel
+```bash
+# Run the deployment helper
+./deploy.sh
+```
+
+**Or manually:**
+1. Visit [vercel.com/new](https://vercel.com/new)
+2. Import this GitHub repository
+3. Set root directory to `frontend`
+4. Add environment variables (see [QUICK_DEPLOY.md](QUICK_DEPLOY.md))
+5. Deploy! 🎉
+
+### Run AI Agent
+```bash
+cd ai_agent
+source venv/bin/activate
+python agent.py
+```
+
+**For production:** Deploy to [Railway](https://railway.app) or [Render](https://render.com)
+
+📚 **Full guide:** See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete step-by-step instructions.
 
 ---
 

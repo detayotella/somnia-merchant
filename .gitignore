@@ -11,9 +11,11 @@ frontend/.env.local
 contracts/.env
 contracts/.env.deploy
 
-## Ignore all markdown files except the main README
+## Ignore all markdown files except the main README and deployment guides
 *.md
 !README.md
+!DEPLOYMENT_GUIDE.md
+!QUICK_DEPLOY.md
 
 ## Python
 __pycache__/
