@@ -48,7 +48,7 @@ class MerchantAgent:
                 from utils.agent_manager import AgentManager
                 logger.info("🏭 Factory mode enabled, initializing AgentManager...")
                 self.agent_manager = AgentManager(
-                    self.web3_helper.w3,
+                    self.web3_helper.web3,
                     config["factory_address"],
                     os.getenv(config.get("private_key_env", "AI_AGENT_PRIVATE_KEY"))
                 )
@@ -198,99 +198,102 @@ class MerchantAgent:
     def _process_factory_merchant(self, merchant_address: str) -> None:
         """Process a single merchant from the factory and make AI-driven decisions."""
         try:
-            # Get merchant contract
+            # Get merchant contract & memory
             merchant_contract = self.agent_manager.get_merchant_contract(merchant_address)
-            merchant_info = self.agent_manager.get_merchant_info(merchant_address)
-            
-            # Get token ID (for now, assume tokenId 1 - TODO: track from events)
-            token_id = merchant_info.get('token_id', 1)
-            
-            # Get merchant name
-            try:
-                name = merchant_contract.functions.getMerchantName(token_id).call()
-            except:
-                name = f"Merchant@{merchant_address[:8]}"
-            
-            # Get inventory
-            try:
-                inventory_raw = merchant_contract.functions.getInventory(token_id).call()
-                inventory = [
-                    {
-                        "name": item[0],
-                        "price": item[1],
-                        "qty": item[2],
-                        "active": item[3]
+            merchant_info = self.agent_manager.get_merchant_info(merchant_address) or {}
+
+            # Attempt to enumerate token IDs for this merchant contract (defensive probe)
+            # In V2 factory mode, each merchant contract can hold many merchant NFTs.
+            # Token ID 1 is usually the first and is created automatically during initialization.
+            # For now, only process token ID 1 to avoid attempting operations on unminted tokens.
+            # In production, track token IDs from MerchantCreated events or balanceOf checks.
+            discovered_token_ids = []
+            MAX_SCAN = 1  # Currently only process token ID 1 (first merchant NFT)
+            for tid in range(1, MAX_SCAN + 1):
+                try:
+                    # probe merchants(tid) - will throw if not present
+                    merchant_contract.functions.merchants(tid).call()
+                    discovered_token_ids.append(tid)
+                except Exception:
+                    break
+
+            if not discovered_token_ids:
+                logger.warning(f"No token IDs found for merchant contract {merchant_address}; skipping")
+                return
+
+            # Process each discovered token id
+            for token_id in discovered_token_ids:
+                try:
+                    # Get merchant-level data using contract-scoped helpers
+                    profit_wei, profit_eth = self.web3_helper.get_profit_for_contract(merchant_address, token_id)
+                    inventory = self.web3_helper.get_inventory_for_contract(merchant_address, token_id)
+
+                    try:
+                        md = merchant_contract.functions.merchants(token_id).call()
+                        name = md[0]
+                        owner = md[1]
+                    except Exception:
+                        name = f"Merchant@{merchant_address[:8]}#{token_id}"
+                        owner = merchant_info.get('owner', 'Unknown')
+
+                    # Wallet balance
+                    _, wallet_balance_eth = self.web3_helper.get_wallet_balance()
+
+                    merchant_data = {
+                        "merchant_address": merchant_address,
+                        "token_id": token_id,
+                        "name": name,
+                        "inventory": inventory,
+                        "profit_wei": profit_wei,
+                        "profit_eth": profit_eth,
+                        "owner": owner,
+                        "memory": merchant_info.get('memory', {})
                     }
-                    for item in inventory_raw
-                ]
-            except Exception as e:
-                logger.warning(f"Could not fetch inventory for {merchant_address}: {e}")
-                inventory = []
-            
-            # Get profit
-            try:
-                profit_wei = merchant_contract.functions.getProfit(token_id).call()
-                profit_eth = profit_wei / 1e18
-            except:
-                profit_wei, profit_eth = 0, 0.0
-            
-            # Get wallet balance
-            _, wallet_balance_eth = self.web3_helper.get_wallet_balance()
-            
-            merchant_data = {
-                "merchant_address": merchant_address,
-                "token_id": token_id,
-                "name": name,
-                "inventory": inventory,
-                "profit_wei": profit_wei,
-                "profit_eth": profit_eth,
-                "owner": merchant_info['owner'],
-                "memory": merchant_info.get('memory', {})
-            }
-            
-            logger.debug(f"Factory Merchant {name} ({merchant_address[:8]}...): {len(inventory)} items, {profit_eth:.4f} ETH profit")
-            
-            # Get AI decision
-            decision = self.decision_engine.get_decision(merchant_data, wallet_balance_eth)
-            
-            action = decision.get("action", "none")
-            details = decision.get("details", {})
-            reasoning = decision.get("reasoning", "No reasoning provided")
-            
-            # Log the AI's decision
-            logger.info(f"🤖 AI Decision for {name} ({merchant_address[:8]}...): action='{action}', reasoning='{reasoning}'")
-            
-            # Update merchant memory
-            self.agent_manager.update_merchant_memory(merchant_address, 'last_decision', {
-                'action': action,
-                'details': details,
-                'reasoning': reasoning,
-                'timestamp': time.time()
-            })
-            
-            # Execute action (if not "none")
-            tx_hash = None
-            if action != "none":
-                logger.info(f"🎯 Executing {action} for factory merchant {merchant_address[:10]}...")
-                tx_hash = self._execute_factory_action(merchant_contract, token_id, action, details)
-                
-                if tx_hash:
-                    logger.success(f"✅ Action '{action}' executed successfully! TX: {tx_hash[:10]}...")
-                    log_decision(action, f"{merchant_address[:8]}", details, reasoning, tx_hash)
-                    self.notifier.send_decision(action, merchant_address, details, reasoning, tx_hash)
-                    
-                    # Record success in memory
-                    self.agent_manager.memory_manager.record_decision(
-                        merchant_address, action, details, reasoning, success=True
-                    )
-                else:
-                    logger.warning(f"⚠️ Action '{action}' failed to execute for {merchant_address}")
-                    self.agent_manager.memory_manager.record_decision(
-                        merchant_address, action, details, reasoning, success=False
-                    )
-                
-                self._log_decision_internal(action, merchant_address, details, reasoning)
-        
+
+                    logger.debug(f"Factory Merchant {name} ({merchant_address[:8]}...): {len(inventory)} items, {profit_eth:.4f} ETH profit")
+
+                    # Get AI decision for this merchant/token
+                    decision = self.decision_engine.get_decision(merchant_data, wallet_balance_eth)
+                    action = decision.get("action", "none")
+                    details = decision.get("details", {})
+                    reasoning = decision.get("reasoning", "No reasoning provided")
+
+                    logger.info(f"🤖 AI Decision for {name} ({merchant_address[:8]}...#{token_id}): action='{action}', reasoning='{reasoning}'")
+
+                    # Update merchant memory
+                    self.agent_manager.update_merchant_memory(merchant_address, 'last_decision', {
+                        'action': action,
+                        'details': details,
+                        'reasoning': reasoning,
+                        'timestamp': time.time()
+                    })
+
+                    # Execute action if instructed
+                    tx_hash = None
+                    if action != "none":
+                        logger.info(f"🎯 Executing {action} for factory merchant {merchant_address[:10]} (token {token_id})...")
+                        tx_hash = self._execute_factory_action(merchant_contract, token_id, action, details)
+
+                        if tx_hash:
+                            logger.success(f"✅ Action '{action}' executed successfully! TX: {tx_hash[:10]}...")
+                            log_decision(action, f"{merchant_address[:8]}#{token_id}", details, reasoning, tx_hash)
+                            self.notifier.send_decision(action, merchant_address, details, reasoning, tx_hash)
+                            self.agent_manager.memory_manager.record_decision(
+                                f"{merchant_address}:{token_id}", action, details, reasoning, success=True
+                            )
+                        else:
+                            logger.warning(f"⚠️ Action '{action}' failed to execute for {merchant_address} token {token_id}")
+                            self.agent_manager.memory_manager.record_decision(
+                                f"{merchant_address}:{token_id}", action, details, reasoning, success=False
+                            )
+
+                        self._log_decision_internal(action, f"{merchant_address}:{token_id}", details, reasoning)
+
+                except Exception as e:
+                    logger.error(f"Error processing token {token_id} for merchant {merchant_address}: {e}")
+                    logger.exception(e)
+                    continue
+
         except Exception as e:
             logger.error(f"Error processing factory merchant {merchant_address}: {e}")
             logger.exception(e)
@@ -312,9 +315,11 @@ class MerchantAgent:
                 )
             
             elif action == "buy":
+                quantity = details.get("quantity", 1)
                 return self.web3_helper.buy_item(
                     token_id,
                     details["item_index"],
+                    quantity,
                     details["price_wei"],
                 )
             
@@ -358,7 +363,7 @@ class MerchantAgent:
         """
         try:
             account = self.web3_helper.account
-            nonce = self.web3_helper.w3.eth.get_transaction_count(account.address)
+            nonce = self.web3_helper.web3.eth.get_transaction_count(account.address)
             
             if action == "add_item":
                 tx = merchant_contract.functions.addItem(
@@ -370,19 +375,22 @@ class MerchantAgent:
                     'from': account.address,
                     'nonce': nonce,
                     'gas': 300000,
-                    'gasPrice': self.web3_helper.w3.eth.gas_price,
+                    'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
             elif action == "buy":
+                quantity = details.get("quantity", 1)
+                total_price = details.get("price_wei", 0) * quantity
                 tx = merchant_contract.functions.buyItem(
                     token_id,
-                    details["item_index"]
+                    details["item_index"],
+                    quantity
                 ).build_transaction({
                     'from': account.address,
-                    'value': details["price_wei"],
+                    'value': total_price,
                     'nonce': nonce,
                     'gas': 200000,
-                    'gasPrice': self.web3_helper.w3.eth.gas_price,
+                    'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
             elif action == "restock":
@@ -394,7 +402,7 @@ class MerchantAgent:
                     'from': account.address,
                     'nonce': nonce,
                     'gas': 200000,
-                    'gasPrice': self.web3_helper.w3.eth.gas_price,
+                    'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
             elif action == "reprice":
@@ -406,7 +414,7 @@ class MerchantAgent:
                     'from': account.address,
                     'nonce': nonce,
                     'gas': 150000,
-                    'gasPrice': self.web3_helper.w3.eth.gas_price,
+                    'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
             elif action == "withdraw":
@@ -416,7 +424,7 @@ class MerchantAgent:
                     'from': account.address,
                     'nonce': nonce,
                     'gas': 100000,
-                    'gasPrice': self.web3_helper.w3.eth.gas_price,
+                    'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
             else:
@@ -425,10 +433,10 @@ class MerchantAgent:
             
             # Sign and send transaction
             signed_tx = account.sign_transaction(tx)
-            tx_hash = self.web3_helper.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_hash = self.web3_helper.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
             
             # Wait for receipt
-            receipt = self.web3_helper.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            receipt = self.web3_helper.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
             
             if receipt['status'] == 1:
                 return tx_hash.hex()

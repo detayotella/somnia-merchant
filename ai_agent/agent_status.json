@@ -1,0 +1,24 @@
+{
+  "is_running": true,
+  "last_poll_time": "2025-10-20T09:30:59.610501+00:00",
+  "agent_address": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
+  "wallet_balance_eth": 0.548462198,
+  "total_decisions_made": 1,
+  "recent_decisions": [
+    {
+      "timestamp": "2025-10-20T09:30:59.415234+00:00",
+      "action": "buy",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {
+        "item_index": 0,
+        "price_wei": 10000000000000000
+      },
+      "reasoning": "Item 'Health Potion' is affordable (0.0100 ETH) and within budget. Buying to stimulate economy.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    }
+  ],
+  "merchants_monitored": 1,
+  "auto_trading_enabled": true,
+  "connection_healthy": true,
+  "uptime_seconds": 8.359773874282837
+}

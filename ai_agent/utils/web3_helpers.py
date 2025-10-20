@@ -149,6 +149,18 @@ class Web3Helper:
         logger.info(f"Merchant contract loaded at {address}")
         return contract
 
+    def get_merchant_contract(self, merchant_address: str) -> Contract:
+        """Return a contract instance for a merchant contract address (V2 clones)."""
+        try:
+            with MERCHANT_ARTIFACT_PATH.open("r", encoding="utf-8") as f:
+                artifact = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load merchant artifact for contract instance: {e}")
+            raise
+
+        address = Web3.to_checksum_address(merchant_address)
+        return self.web3.eth.contract(address=address, abi=artifact.get("abi", []))
+
     def _ensure_ai_agent_registered(self) -> None:
         """Check if agent is registered, and register if not."""
         try:
@@ -171,7 +183,7 @@ class Web3Helper:
             List of items with structure: [name, price_wei, quantity, active]
         """
         try:
-            # Get item count first
+            # Get item count first (default merchant_contract instance)
             item_count = self.merchant_contract.functions.getItemCount(token_id).call()
             inventory = []
             
@@ -195,6 +207,43 @@ class Web3Helper:
         except ContractLogicError as e:
             logger.error(f"Failed to get inventory for merchant {token_id}: {e}")
             return []
+
+    def get_inventory_for_contract(self, merchant_address: str, token_id: int) -> List[Dict[str, Any]]:
+        """Fetch inventory for a specific merchant contract address and token id."""
+        try:
+            merchant = self.get_merchant_contract(merchant_address)
+            item_count = merchant.functions.getItemCount(token_id).call()
+            inventory = []
+            for idx in range(item_count):
+                try:
+                    item = merchant.functions.getItem(token_id, idx).call()
+                    inventory.append({
+                        "index": idx,
+                        "name": item[0],
+                        "price_wei": item[1],
+                        "price_eth": self.web3.from_wei(item[1], "ether"),
+                        "quantity": item[2],
+                        "active": item[3],
+                    })
+                except Exception as e:
+                    logger.debug(f"Could not fetch item {idx} from {merchant_address}: {e}")
+                    continue
+
+            return inventory
+        except ContractLogicError as e:
+            logger.error(f"Failed to get inventory for merchant contract {merchant_address} token {token_id}: {e}")
+            return []
+
+    def get_profit_for_contract(self, merchant_address: str, token_id: int) -> Tuple[int, float]:
+        """Get accumulated profit for a merchant deployed at merchant_address and token id."""
+        try:
+            merchant = self.get_merchant_contract(merchant_address)
+            profit_wei = merchant.functions.profitOf(token_id).call()
+            profit_eth = self.web3.from_wei(profit_wei, "ether")
+            return profit_wei, float(profit_eth)
+        except ContractLogicError as e:
+            logger.error(f"Failed to get profit for {merchant_address} token {token_id}: {e}")
+            return 0, 0.0
 
     def get_profit(self, token_id: int) -> Tuple[int, float]:
         """
@@ -334,6 +383,19 @@ class Web3Helper:
             return tx_hash
         except Exception as e:
             logger.error(f"Failed to restock item: {e}")
+            return None
+
+    def reprice_item(self, token_id: int, item_index: int, new_price_wei: int) -> Optional[str]:
+        """
+        Reprice an existing item in a merchant's inventory.
+        """
+        try:
+            tx = self.merchant_contract.functions.repriceItem(token_id, item_index, new_price_wei)
+            tx_hash = self._send_transaction(tx)
+            logger.success(f"Repriced item {item_index} for merchant {token_id}: {tx_hash}")
+            return tx_hash
+        except Exception as e:
+            logger.error(f"Failed to reprice item: {e}")
             return None
 
     def toggle_item(self, token_id: int, item_index: int) -> Optional[str]:

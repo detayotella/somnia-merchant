@@ -36,25 +36,24 @@ class AgentManager:
         logger.info(f"Factory contract: {self.factory_address}")
     
     def _load_factory_abi(self) -> list:
-        """Load MerchantFactory ABI from compiled artifacts"""
-        try:
-            abi_path = Path(__file__).parent.parent.parent / "contracts" / "out" / "MerchantFactory.sol" / "MerchantFactory.json"
-            with open(abi_path, 'r') as f:
-                artifact = json.load(f)
-                return artifact['abi']
-        except Exception as e:
-            logger.warning(f"Could not load factory ABI: {e}")
-            # Fallback to minimal ABI
-            return [
+        """Load Factory ABI - V2 Factory functions"""
+        return [
                 {
                     "anonymous": False,
                     "inputs": [
-                        {"indexed": True, "name": "merchantAddress", "type": "address"},
-                        {"indexed": True, "name": "owner", "type": "address"},
-                        {"indexed": False, "name": "name", "type": "string"},
-                        {"indexed": False, "name": "timestamp", "type": "uint256"}
+                        {"indexed": True, "name": "merchant", "type": "address"},
+                        {"indexed": True, "name": "creator", "type": "address"},
+                        {"indexed": False, "name": "name", "type": "string"}
                     ],
                     "name": "MerchantCreated",
+                    "type": "event"
+                },
+                {
+                    "anonymous": False,
+                    "inputs": [
+                        {"indexed": True, "name": "agent", "type": "address"}
+                    ],
+                    "name": "AIAgentRegistered",
                     "type": "event"
                 },
                 {
@@ -65,14 +64,31 @@ class AgentManager:
                     "type": "function"
                 },
                 {
-                    "inputs": [{"name": "merchantAddress", "type": "address"}],
-                    "name": "getMerchantDetails",
-                    "outputs": [
-                        {"name": "owner", "type": "address"},
-                        {"name": "aiAgent", "type": "address"},
-                        {"name": "isActive", "type": "bool"}
-                    ],
+                    "inputs": [],
+                    "name": "getMerchantCount",
+                    "outputs": [{"name": "", "type": "uint256"}],
                     "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "creator", "type": "address"}],
+                    "name": "getMerchantsByCreator",
+                    "outputs": [{"name": "", "type": "address[]"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "agent", "type": "address"}],
+                    "name": "registerAIAgent",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "name", "type": "string"}],
+                    "name": "createMerchant",
+                    "outputs": [{"name": "", "type": "address"}],
+                    "stateMutability": "nonpayable",
                     "type": "function"
                 }
             ]
@@ -80,7 +96,14 @@ class AgentManager:
     def _load_merchant_abi(self) -> list:
         """Load MerchantNPC ABI"""
         try:
-            abi_path = Path(__file__).parent.parent.parent / "contracts" / "out" / "MerchantNPC.sol" / "MerchantNPC.json"
+            # Prefer the V2 artifact path (MerchantNPCCoreV2). Fall back to legacy names if missing.
+            base = Path(__file__).parent.parent.parent / "contracts" / "out"
+            v2_path = base / "MerchantNPCCoreV2.sol" / "MerchantNPCCoreV2.json"
+            legacy_path = base / "MerchantNPC.sol" / "MerchantNPC.json"
+            if v2_path.exists():
+                abi_path = v2_path
+            else:
+                abi_path = legacy_path
             with open(abi_path, 'r') as f:
                 artifact = json.load(f)
                 return artifact['abi']
@@ -91,24 +114,22 @@ class AgentManager:
     async def discover_merchants(self):
         """Discover all merchants from the factory and identify which ones this agent manages"""
         try:
-            all_merchants = self.factory_contract.functions.getAllMerchants().call()
-            logger.info(f"Found {len(all_merchants)} total merchants in factory")
+            # For V2, we get merchants created by this agent's address
+            managed_merchants_list = self.factory_contract.functions.getMerchantsByCreator(self.agent_address).call()
+            logger.info(f"Found {len(managed_merchants_list)} merchants created by this agent")
             
-            for merchant_addr in all_merchants:
+            for merchant_addr in managed_merchants_list:
                 merchant_addr = Web3.to_checksum_address(merchant_addr)
-                owner, ai_agent, is_active = self.factory_contract.functions.getMerchantDetails(merchant_addr).call()
                 
-                # Check if this agent is assigned to this merchant
-                if ai_agent.lower() == self.agent_address.lower() and is_active:
-                    if merchant_addr not in self.managed_merchants:
-                        self.managed_merchants[merchant_addr] = {
-                            'owner': owner,
-                            'ai_agent': ai_agent,
-                            'is_active': is_active,
-                            'last_action': None,
-                            'memory': {}
-                        }
-                        logger.info(f"✅ Now managing merchant: {merchant_addr} (owner: {owner})")
+                if merchant_addr not in self.managed_merchants:
+                    self.managed_merchants[merchant_addr] = {
+                        'owner': self.agent_address,  # In V2, creator is the owner
+                        'ai_agent': self.agent_address,
+                        'is_active': True,
+                        'last_action': None,
+                        'memory': {}
+                    }
+                    logger.info(f"✅ Now managing merchant: {merchant_addr}")
             
             logger.info(f"Currently managing {len(self.managed_merchants)} merchants")
             return list(self.managed_merchants.keys())
