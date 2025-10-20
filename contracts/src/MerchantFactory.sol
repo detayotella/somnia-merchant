@@ -4,11 +4,14 @@ pragma solidity ^0.8.27;
 import {MerchantNPC} from "./MerchantNPC.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {IERC721Receiver} from "openzeppelin-contracts/token/ERC721/IERC721Receiver.sol";
+import {Clones} from "openzeppelin-contracts/proxy/Clones.sol";
 
 /// @title Merchant Factory
-/// @notice Factory contract for deploying and managing multiple MerchantNPC instances
-/// @dev Each user can create and manage multiple autonomous merchant NPCs
+/// @notice Factory contract for deploying and managing multiple MerchantNPC instances using minimal proxies
+/// @dev Each user can create and manage multiple autonomous merchant NPCs as cheap clones
 contract MerchantFactory is Ownable, IERC721Receiver {
+    /// @notice The implementation contract address for MerchantNPC
+    address public immutable merchantImplementation;
     /// @notice Emitted when a new merchant is created
     event MerchantCreated(
         address indexed merchantAddress,
@@ -52,7 +55,12 @@ contract MerchantFactory is Ownable, IERC721Receiver {
     error MerchantFactory__NotMerchantOwner();
     error MerchantFactory__MerchantNotFound();
 
-    constructor() Ownable() {}
+    /// @notice Constructor deploys the implementation contract
+    /// @dev The implementation is deployed once and cloned for each new merchant
+    constructor() Ownable() {
+        // Deploy the implementation contract
+        merchantImplementation = address(new MerchantNPC());
+    }
 
     /// @notice Create a new MerchantNPC with initial inventory
     /// @param merchantName The name of the merchant
@@ -68,7 +76,9 @@ contract MerchantFactory is Ownable, IERC721Receiver {
         uint256 itemPrice
     ) external returns (address merchantAddress, uint256 tokenId) {
         // Validation
-        if (bytes(merchantName).length == 0 || bytes(merchantName).length > 32) {
+        if (
+            bytes(merchantName).length == 0 || bytes(merchantName).length > 32
+        ) {
             revert MerchantFactory__InvalidName();
         }
         if (initialStock < MIN_INITIAL_STOCK) {
@@ -78,9 +88,9 @@ contract MerchantFactory is Ownable, IERC721Receiver {
             revert MerchantFactory__InvalidPrice();
         }
 
-        // Deploy new MerchantNPC
-        MerchantNPC merchant = new MerchantNPC();
-        merchantAddress = address(merchant);
+        // Deploy new MerchantNPC using minimal proxy (clone)
+        merchantAddress = Clones.clone(merchantImplementation);
+        MerchantNPC merchant = MerchantNPC(merchantAddress);
 
         // Mint merchant NFT to factory first (so we can add items)
         tokenId = merchant.mintMerchant(address(this), merchantName);

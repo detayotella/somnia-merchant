@@ -1,6 +1,7 @@
 {
   "rpc_url": "https://dream-rpc.somnia.network/",
-  "contract_address": "0x6937F70036E499f56E819eb25658514D7d62C2F6",
+  "contract_address": "0xc9ec0e2eA1a44928b1d5AA3D0e117569CC1e756b",
+  "factory_address": "0xA59c20a794D389Fac2788cB1e41D185093443D36",
   "merchant_owner": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
   "network": "somnia-testnet",
   "private_key_env": "AI_AGENT_PRIVATE_KEY",
@@ -13,5 +14,11 @@
   "gas": {
     "max_priority_gwei": 1.5,
     "max_fee_gwei": 35
+  },
+  "libraries": {
+    "StorageLib": "0x88d8f2AA0a82d35467B17872Cdb8A6a6a948d0b6",
+    "ValidationLib": "0x1629501A881A10Ca88713961BFA974907948fa0a",
+    "InventoryLib": "0x61223EEff3fFE3eDCCE853c4eb4DB8C775681E23",
+    "PurchaseLib": "0x4886085FdB12052C5f470fBDccca5bb3B9d2fBA8"
   }
 }

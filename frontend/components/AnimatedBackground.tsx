@@ -42,8 +42,7 @@ export function AnimatedBackground() {
         })}
       </div>
 
-      {/* Top/Bottom vignette */}
-      <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#0f0b06] to-transparent" />
+      {/* Bottom vignette only */}
       <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#0f0b06] to-transparent" />
     </div>
   );

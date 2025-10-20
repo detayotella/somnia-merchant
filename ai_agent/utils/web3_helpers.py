@@ -9,13 +9,18 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from dotenv import load_dotenv
 from loguru import logger
 from web3 import Web3
 from web3.contract import Contract
 from web3.exceptions import ContractLogicError
 
+# Load environment variables
+load_dotenv()
+
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-ARTIFACT_PATH = ROOT_DIR / "contracts/out/MerchantNPC.sol/MerchantNPC.json"
+MERCHANT_ARTIFACT_PATH = ROOT_DIR / "contracts/out/MerchantNPCCore.sol/MerchantNPCCore.json"
+FACTORY_ARTIFACT_PATH = ROOT_DIR / "contracts/out/MerchantFactoryCore.sol/MerchantFactoryCore.json"
 
 
 class Web3Helper:
@@ -31,7 +36,10 @@ class Web3Helper:
         logger.info(f"Connected to blockchain at {config['rpc_url']}")
         logger.info(f"Chain ID: {self.web3.eth.chain_id}")
         
-        self.contract = self._load_contract()
+        # Load both factory and merchant contracts
+        self.factory_contract = self._load_factory_contract()
+        self.merchant_contract = self._load_merchant_contract()
+        self.contract = self.merchant_contract  # Backward compatibility
         
         # Get private key from environment variable
         key_env = config.get("private_key_env", "AI_AGENT_PRIVATE_KEY")
@@ -41,21 +49,58 @@ class Web3Helper:
         
         self.account = self.web3.eth.account.from_key(private_key)
         logger.info(f"Agent wallet: {self.account.address}")
+        
+        # Register as AI agent if not already registered
+        self._ensure_ai_agent_registered()
 
     def _load_contract(self) -> Contract:
-        """Load contract ABI and create contract instance."""
-        if not ARTIFACT_PATH.exists():
+        """Load merchant contract ABI (legacy method for backward compatibility)."""
+        return self._load_merchant_contract()
+
+    def _load_factory_contract(self) -> Contract:
+        """Load factory contract ABI and create contract instance."""
+        if not FACTORY_ARTIFACT_PATH.exists():
             raise FileNotFoundError(
-                f"Contract artifact not found at {ARTIFACT_PATH}. "
+                f"Factory contract artifact not found at {FACTORY_ARTIFACT_PATH}. "
                 "Run 'forge build' in the contracts directory."
             )
 
         try:
-            with ARTIFACT_PATH.open("r", encoding="utf-8") as f:
+            with FACTORY_ARTIFACT_PATH.open("r", encoding="utf-8") as f:
                 artifact = json.load(f)
         except json.JSONDecodeError:
             raise RuntimeError(
-                f"Contract artifact at {ARTIFACT_PATH} is not valid JSON. Re-run the build (e.g. 'forge build') to regenerate artifacts."
+                f"Contract artifact at {FACTORY_ARTIFACT_PATH} is not valid JSON."
+            )
+
+        address = Web3.to_checksum_address(self.config["factory_address"])
+        
+        # Verify bytecode exists
+        code = self.web3.eth.get_code(address)
+        if not code or self.web3.to_hex(code) == "0x":
+            raise RuntimeError(
+                f"No contract bytecode found at factory address {address}. "
+                "Ensure the factory is deployed."
+            )
+
+        contract = self.web3.eth.contract(address=address, abi=artifact.get("abi", []))
+        logger.info(f"Factory contract loaded at {address}")
+        return contract
+
+    def _load_merchant_contract(self) -> Contract:
+        """Load merchant contract ABI and create contract instance."""
+        if not MERCHANT_ARTIFACT_PATH.exists():
+            raise FileNotFoundError(
+                f"Merchant contract artifact not found at {MERCHANT_ARTIFACT_PATH}. "
+                "Run 'forge build' in the contracts directory."
+            )
+
+        try:
+            with MERCHANT_ARTIFACT_PATH.open("r", encoding="utf-8") as f:
+                artifact = json.load(f)
+        except json.JSONDecodeError:
+            raise RuntimeError(
+                f"Contract artifact at {MERCHANT_ARTIFACT_PATH} is not valid JSON. Re-run the build (e.g. 'forge build') to regenerate artifacts."
             )
 
         address = Web3.to_checksum_address(self.config["contract_address"])
@@ -82,8 +127,22 @@ class Web3Helper:
             )
 
         contract = self.web3.eth.contract(address=address, abi=artifact.get("abi", []))
-        logger.info(f"Contract loaded at {address}")
+        logger.info(f"Merchant contract loaded at {address}")
         return contract
+
+    def _ensure_ai_agent_registered(self) -> None:
+        """Check if agent is registered, and register if not."""
+        try:
+            is_registered = self.factory_contract.functions.isAIAgent(self.account.address).call()
+            if is_registered:
+                logger.info(f"AI agent {self.account.address} is already registered")
+            else:
+                logger.info(f"Registering AI agent {self.account.address}...")
+                tx = self.factory_contract.functions.registerAIAgent(self.account.address)
+                tx_hash = self._send_transaction(tx)
+                logger.success(f"AI agent registered: {tx_hash}")
+        except Exception as e:
+            logger.warning(f"Could not verify/register AI agent: {e}")
 
     def get_inventory(self, token_id: int) -> List[Dict[str, Any]]:
         """
@@ -93,18 +152,25 @@ class Web3Helper:
             List of items with structure: [name, price_wei, quantity, active]
         """
         try:
-            inventory_raw = self.contract.functions.getInventory(token_id).call()
+            # Get item count first
+            item_count = self.merchant_contract.functions.getItemCount(token_id).call()
             inventory = []
             
-            for idx, item in enumerate(inventory_raw):
-                inventory.append({
-                    "index": idx,
-                    "name": item[0],
-                    "price_wei": item[1],
-                    "price_eth": self.web3.from_wei(item[1], "ether"),
-                    "quantity": item[2],
-                    "active": item[3],
-                })
+            # Fetch each item individually
+            for idx in range(item_count):
+                try:
+                    item = self.merchant_contract.functions.getItem(token_id, idx).call()
+                    inventory.append({
+                        "index": idx,
+                        "name": item[0],
+                        "price_wei": item[1],
+                        "price_eth": self.web3.from_wei(item[1], "ether"),
+                        "quantity": item[2],
+                        "active": item[3],
+                    })
+                except Exception as e:
+                    logger.debug(f"Could not fetch item {idx}: {e}")
+                    continue
             
             return inventory
         except ContractLogicError as e:
@@ -129,33 +195,58 @@ class Web3Helper:
     def get_merchant_name(self, token_id: int) -> str:
         """Get merchant name."""
         try:
-            return self.contract.functions.merchantNameOf(token_id).call()
+            merchant_data = self.merchant_contract.functions.merchants(token_id).call()
+            return merchant_data[0]  # name is first field
         except ContractLogicError:
             return f"Merchant #{token_id}"
 
-    def get_total_merchants(self) -> int:
-        """Get total number of merchants."""
+    def get_all_merchants_from_factory(self) -> List[str]:
+        """Get all merchant addresses from factory."""
         try:
-            return self.contract.functions.totalMerchants().call()
+            return self.factory_contract.functions.getAllMerchants().call()
+        except ContractLogicError as e:
+            logger.error(f"Failed to get all merchants: {e}")
+            return []
+
+    def get_merchants_by_creator(self, creator_address: str) -> List[str]:
+        """Get merchants created by a specific AI agent."""
+        try:
+            creator = Web3.to_checksum_address(creator_address)
+            return self.factory_contract.functions.getMerchantsByCreator(creator).call()
+        except ContractLogicError as e:
+            logger.error(f"Failed to get merchants for creator {creator_address}: {e}")
+            return []
+
+    def create_merchant(self, name: str) -> Optional[str]:
+        """
+        Create a new merchant via factory.
+        
+        Args:
+            name: Name for the new merchant
+            
+        Returns:
+            Transaction hash on success, None on failure
+        """
+        try:
+            tx = self.factory_contract.functions.createMerchant(name)
+            tx_hash = self._send_transaction(tx)
+            logger.success(f"Created merchant '{name}': {tx_hash}")
+            return tx_hash
+        except Exception as e:
+            logger.error(f"Failed to create merchant: {e}")
+            return None
+
+    def get_total_merchants(self) -> int:
+        """Get total number of merchants from factory."""
+        try:
+            return self.factory_contract.functions.getMerchantCount().call()
         except ContractLogicError as e:
             logger.error(f"Failed to get total merchants: {e}")
             return 0
 
-    def get_merchants_for_owner(self, owner_address: str) -> List[int]:
-        """Get all merchant token IDs owned by an address."""
-        try:
-            owner = Web3.to_checksum_address(owner_address)
-            balance = self.contract.functions.balanceOf(owner).call()
-            
-            token_ids = []
-            for idx in range(balance):
-                token_id = self.contract.functions.tokenOfOwnerByIndex(owner, idx).call()
-                token_ids.append(token_id)
-            
-            return token_ids
-        except ContractLogicError as e:
-            logger.error(f"Failed to get merchants for owner {owner_address}: {e}")
-            return []
+    def get_merchants_for_owner(self, owner_address: str) -> List[str]:
+        """Get all merchants created by an owner (via factory)."""
+        return self.get_merchants_by_creator(owner_address)
 
     def get_wallet_balance(self) -> Tuple[int, float]:
         """
@@ -168,17 +259,23 @@ class Web3Helper:
         balance_eth = self.web3.from_wei(balance_wei, "ether")
         return balance_wei, float(balance_eth)
 
-    def buy_item(self, token_id: int, item_index: int, price_wei: int) -> Optional[str]:
+    def buy_item(self, token_id: int, item_index: int, quantity: int, price_wei: int) -> Optional[str]:
         """
         Buy an item from a merchant.
+        
+        Args:
+            token_id: Merchant ID
+            item_index: Item index in inventory
+            quantity: Number of items to buy
+            price_wei: Total price in wei
         
         Returns:
             Transaction hash on success, None on failure
         """
         try:
-            tx = self.contract.functions.buyItem(token_id, item_index)
+            tx = self.merchant_contract.functions.buyItem(token_id, item_index, quantity)
             tx_hash = self._send_transaction(tx, value=price_wei)
-            logger.success(f"Bought item {item_index} from merchant {token_id}: {tx_hash}")
+            logger.success(f"Bought {quantity}x item {item_index} from merchant {token_id}: {tx_hash}")
             return tx_hash
         except Exception as e:
             logger.error(f"Failed to buy item: {e}")
@@ -194,7 +291,7 @@ class Web3Helper:
             Transaction hash on success, None on failure
         """
         try:
-            tx = self.contract.functions.addItem(token_id, name, price_wei, quantity)
+            tx = self.merchant_contract.functions.addItem(token_id, name, price_wei, quantity)
             tx_hash = self._send_transaction(tx)
             logger.success(f"Added item '{name}' to merchant {token_id}: {tx_hash}")
             return tx_hash
@@ -210,7 +307,7 @@ class Web3Helper:
             Transaction hash on success, None on failure
         """
         try:
-            tx = self.contract.functions.restockItem(token_id, item_index, quantity)
+            tx = self.merchant_contract.functions.restockItem(token_id, item_index, quantity)
             tx_hash = self._send_transaction(tx)
             logger.success(
                 f"Restocked item {item_index} for merchant {token_id} with {quantity} units: {tx_hash}"
@@ -220,23 +317,20 @@ class Web3Helper:
             logger.error(f"Failed to restock item: {e}")
             return None
 
-    def reprice_item(self, token_id: int, item_index: int, new_price_wei: int) -> Optional[str]:
+    def toggle_item(self, token_id: int, item_index: int) -> Optional[str]:
         """
-        Update item price.
+        Toggle item active status.
         
         Returns:
             Transaction hash on success, None on failure
         """
         try:
-            tx = self.contract.functions.sellItem(token_id, item_index, new_price_wei)
+            tx = self.merchant_contract.functions.toggleItem(token_id, item_index)
             tx_hash = self._send_transaction(tx)
-            new_price_eth = self.web3.from_wei(new_price_wei, "ether")
-            logger.success(
-                f"Repriced item {item_index} for merchant {token_id} to {new_price_eth} ETH: {tx_hash}"
-            )
+            logger.success(f"Toggled item {item_index} for merchant {token_id}: {tx_hash}")
             return tx_hash
         except Exception as e:
-            logger.error(f"Failed to reprice item: {e}")
+            logger.error(f"Failed to toggle item: {e}")
             return None
 
     def withdraw_profit(self, token_id: int) -> Optional[str]:
@@ -247,7 +341,7 @@ class Web3Helper:
             Transaction hash on success, None on failure
         """
         try:
-            tx = self.contract.functions.withdrawProfit(token_id)
+            tx = self.merchant_contract.functions.withdrawProfit(token_id)
             tx_hash = self._send_transaction(tx)
             logger.success(f"Withdrew profit for merchant {token_id}: {tx_hash}")
             return tx_hash

@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 from web3 import Web3
 from loguru import logger
 from pathlib import Path
+from .memory_manager import MemoryManager
 
 class AgentManager:
     """Manages multiple AI agents for different merchant instances"""
@@ -27,6 +28,9 @@ class AgentManager:
         
         # Track merchants assigned to this agent
         self.managed_merchants: Dict[str, dict] = {}
+        
+        # Initialize memory manager
+        self.memory_manager = MemoryManager()
         
         logger.info(f"AgentManager initialized for agent: {self.agent_address}")
         logger.info(f"Factory contract: {self.factory_address}")
@@ -172,16 +176,33 @@ class AgentManager:
         return list(self.managed_merchants.keys())
     
     def get_merchant_info(self, merchant_address: str) -> Optional[dict]:
-        """Get info about a specific managed merchant"""
-        return self.managed_merchants.get(merchant_address)
+        """Get info about a specific managed merchant with persistent memory"""
+        base_info = self.managed_merchants.get(merchant_address)
+        if base_info is None:
+            return None
+        
+        # Load persistent memory from database
+        memory_data = self.memory_manager.get_merchant_memory(merchant_address)
+        
+        # Merge with runtime info
+        base_info['memory'] = memory_data.get('memory', {})
+        base_info['strategy'] = memory_data.get('strategy', 'balanced')
+        base_info['personality'] = memory_data.get('personality', 'neutral')
+        base_info['total_decisions'] = memory_data.get('total_decisions', 0)
+        
+        return base_info
     
     def update_merchant_memory(self, merchant_address: str, key: str, value):
-        """Update memory/state for a specific merchant"""
+        """Update memory/state for a specific merchant with persistence"""
+        # Update runtime cache
         if merchant_address in self.managed_merchants:
             if 'memory' not in self.managed_merchants[merchant_address]:
                 self.managed_merchants[merchant_address]['memory'] = {}
             self.managed_merchants[merchant_address]['memory'][key] = value
             self.managed_merchants[merchant_address]['last_action'] = self.w3.eth.get_block('latest')['timestamp']
+        
+        # Persist to database
+        self.memory_manager.update_merchant_memory(merchant_address, key, value)
     
     async def run_decision_cycle(self, decision_engine):
         """Run AI decision cycle for all managed merchants"""

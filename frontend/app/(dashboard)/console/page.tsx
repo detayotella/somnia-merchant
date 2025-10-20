@@ -10,6 +10,7 @@ import { MerchantCard, type MerchantViewModel } from "../../../components/Mercha
 import { ProfitPanel } from "../../../components/ProfitPanel";
 import { ActivityFeed } from "../../../components/ActivityFeed";
 import { AIAgentStatus } from "../../../components/AIAgentStatus";
+import { MerchantDecisionStream } from "../../../components/MerchantDecisionStream";
 
 const client = createPublicClient({
   chain: somniaChain,
@@ -80,28 +81,28 @@ export default function ConsolePage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl border border-borderLight bg-gradient-to-br from-surface/80 to-surfaceLight/60 backdrop-blur-xl p-8 shadow-card">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 pointer-events-none" />
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-1 w-16 rounded-full bg-gradient-to-r from-primary to-secondary" />
-            <span className="text-sm font-semibold text-primary uppercase tracking-wider">Dashboard</span>
-          </div>
-          <h2 className="font-display text-3xl font-bold text-textPrimary mb-2">Active Merchants</h2>
-          <p className="text-textMuted max-w-2xl">
-            Real-time monitoring of AI-powered NPC merchants on Somnia testnet. Data refreshes every 30 seconds.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-surfaceLight border border-borderLight">
-              <div className="h-2 w-2 rounded-full bg-success animate-pulse-slow" />
-              <span className="text-sm text-textMuted">Live</span>
+        <section className="relative overflow-hidden rounded-2xl border border-borderLight bg-gradient-to-br from-surface/80 to-surfaceLight/60 backdrop-blur-xl p-8 shadow-card">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-1 w-16 rounded-full bg-gradient-to-r from-primary to-secondary" />
+              <span className="text-sm font-semibold text-primary uppercase tracking-wider">Console</span>
             </div>
-            <div className="px-4 py-2 rounded-full bg-surfaceLight border border-borderLight">
-              <span className="text-sm text-textMuted">{merchants.length} Merchants Online</span>
+            <h2 className="font-display text-3xl font-bold text-textPrimary mb-2">Active Merchants</h2>
+            <p className="text-textMuted max-w-2xl">
+              Real-time monitoring of AI-powered NPC merchants on Somnia testnet. Data refreshes every 30 seconds.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-surfaceLight border border-borderLight">
+                <div className="h-2 w-2 rounded-full bg-success animate-pulse-slow" />
+                <span className="text-sm text-textMuted">Live</span>
+              </div>
+              <div className="px-4 py-2 rounded-full bg-surfaceLight border border-borderLight">
+                <span className="text-sm text-textMuted">{merchants.length} Merchants Online</span>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* Merchants Grid */}
       <section>
@@ -137,11 +138,11 @@ export default function ConsolePage() {
       {/* AI Agent Status */}
       <AIAgentStatus />
 
-      {/* Analytics Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ProfitPanel data={profitData} />
-        <ActivityFeed entries={activities} />
-      </div>
+        {/* Analytics Section */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ProfitPanel data={profitData} />
+          <ActivityFeed entries={activities} />
+        </div>
     </div>
   );
 }

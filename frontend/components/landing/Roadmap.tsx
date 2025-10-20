@@ -196,9 +196,9 @@ export function Roadmap() {
         <p className="text-gray-300 leading-relaxed text-lg">
           Somnia Merchant NPC represents the future of blockchain applications—where smart contracts
           become <span className="text-primary font-semibold">living economic actors</span>. By
-          combining on-chain autonomy with AI decision-making, we're creating a new paradigm:{" "}
+          combining on-chain autonomy with AI decision-making, we&apos;re creating a new paradigm:{" "}
           <span className="text-secondary font-semibold">autonomous commerce</span> that operates
-          transparently, continuously, and independently. This is not just a demo—it's a proof of
+          transparently, continuously, and independently. This is not just a demo—it&apos;s a proof of
           concept for the next generation of decentralized applications.
         </p>
       </motion.div>

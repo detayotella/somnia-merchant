@@ -1,0 +1,30 @@
+{
+  "network": {
+    "name": "Somnia Testnet",
+    "chainId": 50312,
+    "rpcUrl": "https://dream-rpc.somnia.network/"
+  },
+  "contracts": {
+    "libraries": {
+      "StorageLib": "0x88d8f2AA0a82d35467B17872Cdb8A6a6a948d0b6",
+      "ValidationLib": "0x1629501A881A10Ca88713961BFA974907948fa0a",
+      "InventoryLib": "0x61223EEff3fFE3eDCCE853c4eb4DB8C775681E23",
+      "PurchaseLib": "0x4886085FdB12052C5f470fBDccca5bb3B9d2fBA8"
+    },
+    "core": {
+      "MerchantNPCCore": {
+        "address": "0x050C4a124571B6acC6D48540d95b9a442F2e549d",
+        "type": "implementation",
+        "description": "ERC721 merchant NFT implementation"
+      },
+      "MerchantFactoryCore": {
+        "address": "0xe4113B75B4d044DDfF12a746b4e8c2dBc5Fe4D7B",
+        "type": "factory",
+        "description": "Factory for creating merchant clones"
+      }
+    }
+  },
+  "deployer": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
+  "deploymentDate": "2025-10-19",
+  "version": "1.0.0"
+}

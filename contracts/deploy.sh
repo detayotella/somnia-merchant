@@ -1,126 +1,191 @@
 #!/bin/bash
 
-# Somnia Merchant NPC Deployment Script
-# This script helps you deploy the contract and configure the application
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-set -e
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}Somnia Merchant NPC Deployment Script${NC}"
+echo -e "${GREEN}========================================${NC}\n"
 
-echo "==================================="
-echo "Somnia Merchant NPC Deployment"
-echo "==================================="
-echo ""
+# Load environment variables
+source ../ai_agent/.env
 
-# Check if we're in the contracts directory
-if [ ! -f "foundry.toml" ]; then
-    echo "❌ Error: Please run this script from the contracts directory"
-    exit 1
-fi
+# Network configuration
+RPC_URL="https://dream-rpc.somnia.network/"
+CHAIN_ID="50312"
+GAS_PRICE="6000000000" # 6 gwei
+GAS_LIMIT_IMPL="20000000"
+GAS_LIMIT_FACTORY="10000000"
 
-# Check if .env exists
-if [ ! -f ".env" ]; then
-    echo "⚠️  .env file not found. Creating from template..."
-    cp .env.example .env
-    echo "✅ Created .env file"
-    echo ""
-    echo "📝 Please edit contracts/.env and add:"
-    echo "   - PRIVATE_KEY: Your wallet's private key"
-    echo "   - MERCHANT_OWNER: Your wallet address"
-    echo "   - SOMNIA_RPC_URL: https://dream-rpc.somnia.network/"
-    echo ""
-    echo "Then run this script again."
-    exit 0
-fi
+echo -e "${YELLOW}Network:${NC} Somnia Testnet"
+echo -e "${YELLOW}RPC URL:${NC} $RPC_URL"
+echo -e "${YELLOW}Chain ID:${NC} $CHAIN_ID"
+echo -e "${YELLOW}Deployer:${NC} $(cast wallet address --private-key $AI_AGENT_PRIVATE_KEY)"
+echo -e "${YELLOW}Balance:${NC} $(cast balance $(cast wallet address --private-key $AI_AGENT_PRIVATE_KEY) --rpc-url $RPC_URL) wei\n"
 
-# Source the .env file
-source .env
+# Step 1: Get MerchantNPC bytecode
+echo -e "${YELLOW}Step 1: Compiling MerchantNPC...${NC}"
+forge build --silent
 
-# Check if required variables are set
-if [ -z "$PRIVATE_KEY" ] || [ "$PRIVATE_KEY" == "your-private-key-here" ]; then
-    echo "❌ Error: PRIVATE_KEY not set in .env"
-    echo "Please edit contracts/.env and add your private key"
-    exit 1
-fi
+IMPL_BYTECODE=$(forge inspect src/MerchantNPC.sol:MerchantNPC bytecode)
+IMPL_SIZE=${#IMPL_BYTECODE}
 
-if [ -z "$MERCHANT_OWNER" ] || [ "$MERCHANT_OWNER" == "your-wallet-address-here" ]; then
-    echo "❌ Error: MERCHANT_OWNER not set in .env"
-    echo "Please edit contracts/.env and add your wallet address"
-    exit 1
-fi
+echo -e "${GREEN}✓ MerchantNPC bytecode compiled${NC}"
+echo -e "  Bytecode size: $((IMPL_SIZE / 2)) bytes\n"
 
-echo "🔍 Checking RPC connection..."
-CHAIN_ID=$(curl -s -X POST -H "Content-Type: application/json" \
-    --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-    $SOMNIA_RPC_URL | grep -o '"result":"0x[^"]*"' | cut -d'"' -f4)
+# Step 2: Deploy MerchantNPC Implementation
+echo -e "${YELLOW}Step 2: Deploying MerchantNPC implementation...${NC}"
 
-if [ -z "$CHAIN_ID" ]; then
-    echo "❌ Error: Cannot connect to Somnia RPC"
-    echo "RPC URL: $SOMNIA_RPC_URL"
-    exit 1
-fi
+IMPL_TX=$(cast send \
+    --rpc-url $RPC_URL \
+    --private-key $AI_AGENT_PRIVATE_KEY \
+    --legacy \
+    --gas-limit $GAS_LIMIT_IMPL \
+    --gas-price $GAS_PRICE \
+    --create $IMPL_BYTECODE \
+    --json)
 
-CHAIN_ID_DEC=$((16#${CHAIN_ID:2}))
-echo "✅ Connected to Somnia (Chain ID: $CHAIN_ID_DEC)"
-echo ""
+IMPL_STATUS=$(echo $IMPL_TX | jq -r '.status')
+IMPL_ADDRESS=$(echo $IMPL_TX | jq -r '.contractAddress')
+IMPL_TX_HASH=$(echo $IMPL_TX | jq -r '.transactionHash')
+IMPL_GAS_USED=$(echo $IMPL_TX | jq -r '.gasUsed')
 
-echo "🔨 Compiling contracts..."
-forge build
-echo "✅ Contracts compiled"
-echo ""
-
-echo "🚀 Deploying MerchantNPC contract..."
-echo "   - RPC: $SOMNIA_RPC_URL"
-echo "   - Owner: $MERCHANT_OWNER"
-echo ""
-
-# Deploy the contract
-DEPLOY_OUTPUT=$(forge script script/Deploy.s.sol \
-    --rpc-url $SOMNIA_RPC_URL \
-    --private-key $PRIVATE_KEY \
-    --broadcast \
-    -vvv 2>&1)
-
-echo "$DEPLOY_OUTPUT"
-
-# Extract contract address from output
-CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep -o "Contract deployed at: 0x[a-fA-F0-9]*" | grep -o "0x[a-fA-F0-9]*" || echo "")
-
-if [ -z "$CONTRACT_ADDRESS" ]; then
-    echo "⚠️  Could not extract contract address from deployment output"
-    echo "Please check the output above for the deployed contract address"
-    echo ""
-    echo "📝 Next steps:"
-    echo "1. Find the contract address in the output above"
-    echo "2. Update frontend/.env.local with the contract address"
-    echo "3. Restart the frontend dev server"
-    exit 0
-fi
-
-echo ""
-echo "✅ Deployment successful!"
-echo "📝 Contract Address: $CONTRACT_ADDRESS"
-echo ""
-
-# Update frontend .env.local
-FRONTEND_ENV="../frontend/.env.local"
-if [ -f "$FRONTEND_ENV" ]; then
-    echo "🔄 Updating frontend configuration..."
-    sed -i "s|NEXT_PUBLIC_CONTRACT_ADDRESS=.*|NEXT_PUBLIC_CONTRACT_ADDRESS=$CONTRACT_ADDRESS|g" "$FRONTEND_ENV"
-    echo "✅ Updated $FRONTEND_ENV"
+if [ "$IMPL_STATUS" = "0x1" ] || [ "$IMPL_STATUS" = "1" ]; then
+    echo -e "${GREEN}✓ MerchantNPC deployed successfully!${NC}"
+    echo -e "  Address: ${GREEN}$IMPL_ADDRESS${NC}"
+    echo -e "  TX Hash: $IMPL_TX_HASH"
+    echo -e "  Gas Used: $IMPL_GAS_USED\n"
 else
-    echo "⚠️  Frontend .env.local not found at $FRONTEND_ENV"
-    echo "Please manually create it and add:"
-    echo "NEXT_PUBLIC_CONTRACT_ADDRESS=$CONTRACT_ADDRESS"
+    echo -e "${RED}✗ MerchantNPC deployment failed!${NC}"
+    echo -e "  TX Hash: $IMPL_TX_HASH"
+    echo -e "  Status: $IMPL_STATUS"
+    exit 1
 fi
 
-echo ""
-echo "🎉 Setup complete!"
-echo ""
-echo "📋 Summary:"
-echo "   - Contract: $CONTRACT_ADDRESS"
-echo "   - Chain ID: $CHAIN_ID_DEC"
-echo "   - RPC: $SOMNIA_RPC_URL"
-echo ""
-echo "🚀 Next steps:"
-echo "1. Restart your frontend dev server: cd ../frontend && pnpm dev"
-echo "2. (Optional) Run the AI agent: cd ../ai_agent && python agent.py"
-echo ""
+# Verify implementation has code
+sleep 2
+IMPL_CODE=$(cast code $IMPL_ADDRESS --rpc-url $RPC_URL)
+if [ ${#IMPL_CODE} -lt 10 ]; then
+    echo -e "${RED}✗ Implementation has no code!${NC}"
+    exit 1
+fi
+
+# Step 3: Deploy MerchantFactoryV2
+echo -e "${YELLOW}Step 3: Deploying MerchantFactoryV2...${NC}"
+
+FACTORY_BYTECODE=$(forge inspect src/MerchantFactoryV2.sol:MerchantFactoryV2 bytecode)
+FACTORY_SIZE=${#FACTORY_BYTECODE}
+
+echo -e "${GREEN}✓ MerchantFactoryV2 bytecode compiled${NC}"
+echo -e "  Bytecode size: $((FACTORY_SIZE / 2)) bytes"
+
+# Encode constructor arguments
+CONSTRUCTOR_ARGS=$(cast abi-encode "constructor(address)" "$IMPL_ADDRESS")
+# Remove 0x prefix from constructor args
+CONSTRUCTOR_ARGS=${CONSTRUCTOR_ARGS:2}
+
+# Combine bytecode with constructor arguments
+FACTORY_DEPLOYMENT_DATA="${FACTORY_BYTECODE}${CONSTRUCTOR_ARGS}"
+
+echo -e "${YELLOW}Deploying factory with implementation: $IMPL_ADDRESS${NC}\n"
+
+FACTORY_TX=$(cast send \
+    --rpc-url $RPC_URL \
+    --private-key $AI_AGENT_PRIVATE_KEY \
+    --legacy \
+    --gas-limit $GAS_LIMIT_FACTORY \
+    --gas-price $GAS_PRICE \
+    --create $FACTORY_DEPLOYMENT_DATA \
+    --json)
+
+FACTORY_STATUS=$(echo $FACTORY_TX | jq -r '.status')
+FACTORY_ADDRESS=$(echo $FACTORY_TX | jq -r '.contractAddress')
+FACTORY_TX_HASH=$(echo $FACTORY_TX | jq -r '.transactionHash')
+FACTORY_GAS_USED=$(echo $FACTORY_TX | jq -r '.gasUsed')
+
+if [ "$FACTORY_STATUS" = "0x1" ] || [ "$FACTORY_STATUS" = "1" ]; then
+    echo -e "${GREEN}✓ MerchantFactoryV2 deployed successfully!${NC}"
+    echo -e "  Address: ${GREEN}$FACTORY_ADDRESS${NC}"
+    echo -e "  TX Hash: $FACTORY_TX_HASH"
+    echo -e "  Gas Used: $FACTORY_GAS_USED\n"
+else
+    echo -e "${RED}✗ MerchantFactoryV2 deployment failed!${NC}"
+    echo -e "  TX Hash: $FACTORY_TX_HASH"
+    echo -e "  Status: $FACTORY_STATUS"
+    
+    # Get revert reason if available
+    echo -e "\n${YELLOW}Fetching transaction receipt...${NC}"
+    cast receipt $FACTORY_TX_HASH --rpc-url $RPC_URL
+    exit 1
+fi
+
+# Verify factory has code
+sleep 2
+FACTORY_CODE=$(cast code $FACTORY_ADDRESS --rpc-url $RPC_URL)
+if [ ${#FACTORY_CODE} -lt 10 ]; then
+    echo -e "${RED}✗ Factory has no code!${NC}"
+    exit 1
+fi
+
+# Step 4: Update configuration files
+echo -e "${YELLOW}Step 4: Updating configuration files...${NC}"
+
+# Update frontend constants
+FRONTEND_CONSTANTS="../frontend/lib/constants.ts"
+if [ -f "$FRONTEND_CONSTANTS" ]; then
+    sed -i "s/export const CONTRACT_ADDRESS = .*/export const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? \"$FACTORY_ADDRESS\") as \`0x\${string}\`;/" $FRONTEND_CONSTANTS
+    sed -i "s/export const FACTORY_ADDRESS = .*/export const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? \"$FACTORY_ADDRESS\") as \`0x\${string}\`;/" $FRONTEND_CONSTANTS
+    echo -e "${GREEN}✓ Updated frontend constants${NC}"
+fi
+
+# Update AI agent .env
+AI_AGENT_ENV="../ai_agent/.env"
+if [ -f "$AI_AGENT_ENV" ]; then
+    sed -i "s/FACTORY_ADDRESS=.*/FACTORY_ADDRESS=$FACTORY_ADDRESS/" $AI_AGENT_ENV
+    echo -e "${GREEN}✓ Updated AI agent config${NC}"
+fi
+
+# Create deployment info file
+cat > deployment-info.json << EOF
+{
+  "network": "Somnia Testnet",
+  "chainId": $CHAIN_ID,
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "deployer": "$(cast wallet address --private-key $AI_AGENT_PRIVATE_KEY)",
+  "contracts": {
+    "MerchantNPC": {
+      "address": "$IMPL_ADDRESS",
+      "txHash": "$IMPL_TX_HASH",
+      "gasUsed": "$IMPL_GAS_USED"
+    },
+    "MerchantFactoryV2": {
+      "address": "$FACTORY_ADDRESS",
+      "txHash": "$FACTORY_TX_HASH",
+      "gasUsed": "$FACTORY_GAS_USED"
+    }
+  }
+}
+EOF
+
+echo -e "${GREEN}✓ Created deployment-info.json${NC}\n"
+
+# Final summary
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}     DEPLOYMENT SUCCESSFUL! 🎉${NC}"
+echo -e "${GREEN}========================================${NC}\n"
+
+echo -e "${YELLOW}Deployed Contracts:${NC}"
+echo -e "  MerchantNPC Implementation: ${GREEN}$IMPL_ADDRESS${NC}"
+echo -e "  MerchantFactoryV2:          ${GREEN}$FACTORY_ADDRESS${NC}\n"
+
+echo -e "${YELLOW}Explorer Links:${NC}"
+echo -e "  Implementation: https://explorer.somnia.network/address/$IMPL_ADDRESS"
+echo -e "  Factory:        https://explorer.somnia.network/address/$FACTORY_ADDRESS\n"
+
+echo -e "${YELLOW}Next Steps:${NC}"
+echo -e "  1. Verify contracts on explorer"
+echo -e "  2. Test merchant creation via frontend"
+echo -e "  3. Start AI agent with: cd ../ai_agent && npm start\n"

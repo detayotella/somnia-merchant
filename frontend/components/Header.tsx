@@ -5,7 +5,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export function Header() {
   return (
-    <header className="relative overflow-hidden rounded-2xl border border-borderLight bg-surface/90 backdrop-blur-2xl shadow-luxury">
+    <header className="relative overflow-hidden rounded-2xl border border-borderLight bg-surface/95 backdrop-blur-md shadow-luxury">
       <div className="absolute inset-0 bg-gradient-subtle pointer-events-none" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 

@@ -12,8 +12,10 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from loguru import logger
+import time
 
 # Shared state file for agent status
 STATUS_FILE = Path(__file__).resolve().parent / "agent_status.json"
@@ -84,10 +86,18 @@ async def get_agent_status():
 
 
 @app.get("/api/agent/decisions")
-async def get_recent_decisions(limit: int = 20):
-    """Get recent AI decisions with reasoning."""
+async def get_recent_decisions(limit: int = 20, merchant_address: Optional[str] = None):
+    """Get recent AI decisions with reasoning, optionally filtered by merchant."""
     status = load_agent_status()
     decisions = status.get("recent_decisions", [])
+    
+    # Filter by merchant address if provided
+    if merchant_address:
+        decisions = [
+            d for d in decisions 
+            if d.get("merchant_address", "").lower() == merchant_address.lower()
+        ]
+    
     return {"decisions": decisions[:limit], "total": len(decisions)}
 
 
@@ -135,6 +145,78 @@ async def health_check():
         "healthy": healthy,
         "last_seen": last_poll,
         "connection_healthy": status.get("connection_healthy", False),
+    }
+
+
+@app.get("/api/agent/decisions/stream")
+async def stream_decisions(merchant_address: Optional[str] = None):
+    """Server-Sent Events stream of AI decisions, optionally filtered by merchant."""
+    
+    async def event_generator():
+        last_decision_count = 0
+        
+        while True:
+            try:
+                status = load_agent_status()
+                decisions = status.get("recent_decisions", [])
+                
+                # Filter by merchant if specified
+                if merchant_address:
+                    decisions = [
+                        d for d in decisions 
+                        if d.get("merchant_address", "").lower() == merchant_address.lower()
+                    ]
+                
+                # Send new decisions
+                if len(decisions) > last_decision_count:
+                    for decision in decisions[last_decision_count:]:
+                        yield f"data: {json.dumps(decision)}\n\n"
+                    last_decision_count = len(decisions)
+                
+                # Send heartbeat
+                yield f"event: heartbeat\ndata: {json.dumps({'timestamp': datetime.now().isoformat()})}\n\n"
+                
+                await asyncio.sleep(2)  # Poll every 2 seconds
+                
+            except Exception as e:
+                logger.error(f"Error in decision stream: {e}")
+                yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+                await asyncio.sleep(5)
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
+
+@app.get("/api/merchants")
+async def get_merchants():
+    """Get list of all merchants being monitored by the agent."""
+    status = load_agent_status()
+    decisions = status.get("recent_decisions", [])
+    
+    # Extract unique merchant addresses from decisions
+    merchants = {}
+    for decision in decisions:
+        addr = decision.get("merchant_address")
+        if addr and addr not in merchants:
+            merchants[addr] = {
+                "address": addr,
+                "merchant_id": decision.get("merchant_id"),
+                "last_activity": decision.get("timestamp"),
+                "decision_count": 1
+            }
+        elif addr:
+            merchants[addr]["decision_count"] += 1
+            merchants[addr]["last_activity"] = decision.get("timestamp")
+    
+    return {
+        "merchants": list(merchants.values()),
+        "total": len(merchants)
     }
 
 

@@ -10,6 +10,7 @@ import { merchantNpcAbi } from "../../../lib/abi";
 import { CONTRACT_ADDRESS, RPC_URL } from "../../../lib/constants";
 import type { MerchantViewModel } from "../../../components/MerchantCard";
 import { ActivityFeed } from "../../../components/ActivityFeed";
+import { Layout } from "../../../components/Layout";
 
 const client = createPublicClient({ chain: somniaChain, transport: http(RPC_URL) });
 
@@ -32,11 +33,11 @@ export default function MerchantDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-surface/20 to-background p-6">
+      <Layout>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mx-auto max-w-6xl space-y-6"
+          className="space-y-6"
         >
           <button
             onClick={() => router.push("/console")}
@@ -52,14 +53,14 @@ export default function MerchantDetailPage() {
             </div>
           </div>
         </motion.div>
-      </div>
+      </Layout>
     );
   }
 
   if (!merchant) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-surface/20 to-background p-6">
-        <div className="mx-auto max-w-6xl space-y-6">
+      <Layout>
+        <div className="space-y-6">
           <button
             onClick={() => router.push("/console")}
             className="flex items-center gap-2 text-sm text-mint transition-colors hover:text-mint/80"
@@ -71,7 +72,7 @@ export default function MerchantDetailPage() {
             <p className="text-red-400">Merchant not found or failed to load.</p>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -79,11 +80,11 @@ export default function MerchantDetailPage() {
   const activeItems = merchant.items.filter(item => item.active && item.qty > 0).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-surface/20 to-background p-6">
+    <Layout>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-auto max-w-6xl space-y-6"
+        className="space-y-6"
       >
         {/* Back Button */}
         <button
@@ -253,7 +254,7 @@ export default function MerchantDetailPage() {
           <ActivityFeed entries={[]} />
         </motion.div>
       </motion.div>
-    </div>
+    </Layout>
   );
 }
 
