@@ -1,23 +1,21 @@
-# Environment Variables
+## Environment files (do NOT commit secrets)
+# Root envs
 .env
-.env.local
-.env.*.local
-*.env
-**/.env
-**/.env.local
+.env.*
+
+# Per-service envs (explicit)
 ai_agent/.env
+ai_agent/.env.local
 frontend/.env
 frontend/.env.local
 contracts/.env
 contracts/.env.deploy
 
-# Exclude all markdown files except important docs
+## Ignore all markdown files except the main README
 *.md
 !README.md
-!DEPLOYMENT.md
-!FACTORY_IMPLEMENTATION.md
 
-# Python
+## Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -27,48 +25,46 @@ venv/
 .venv/
 env/
 ENV/
-*.log
-*.pid
-*.seed
-*.pyc
 ai_agent/venv/
 ai_agent/.venv/
 ai_agent/logs/
 ai_agent/*.log
-ai_agent/agent_status.json
 nohup.out
 
-# Node
+## Node / Frontend
 node_modules/
+frontend/node_modules/
 .next/
+frontend/.next/
+dist/
 out/
 build/
-dist/
-*.tsbuildinfo
-.cache/
-frontend/node_modules/
-frontend/.next/
 frontend/out/
 frontend/build/
+*.tsbuildinfo
+.cache/
 
-# Foundry/Forge
+## Foundry / Forge
 contracts/cache/
 contracts/out/
 contracts/broadcast/
 contracts/lib/
-*.log
-deployment.log
+forge-debug.log
 
-# IDE
+## IDEs / Editors
 .vscode/
 .idea/
-*.swp
 *.swo
+*.swp
 *~
 .DS_Store
 
-# Temporary files
+## Misc / Temp
+*.log
 *.tmp
 *.temp
 tmp/
 temp/
+
+## Keep track of local overrides for git in case someone creates them
+/.gitignore.local
