@@ -202,20 +202,53 @@ class MerchantAgent:
             merchant_contract = self.agent_manager.get_merchant_contract(merchant_address)
             merchant_info = self.agent_manager.get_merchant_info(merchant_address) or {}
 
-            # Attempt to enumerate token IDs for this merchant contract (defensive probe)
-            # In V2 factory mode, each merchant contract can hold many merchant NFTs.
-            # Token ID 1 is usually the first and is created automatically during initialization.
-            # For now, only process token ID 1 to avoid attempting operations on unminted tokens.
-            # In production, track token IDs from MerchantCreated events or balanceOf checks.
+            # Attempt to enumerate token IDs for this merchant contract.
+            # Strategy: Check balanceOf for the merchant owner to see how many tokens exist,
+            # then probe token IDs starting from 1. This is more efficient than blind scanning.
             discovered_token_ids = []
-            MAX_SCAN = 1  # Currently only process token ID 1 (first merchant NFT)
-            for tid in range(1, MAX_SCAN + 1):
+            
+            try:
+                # Get owner from merchant info
+                owner = merchant_info.get('owner', self.web3_helper.account.address)
+                
+                # Check balance of tokens owned by this merchant contract owner
+                balance = merchant_contract.functions.balanceOf(owner).call()
+                
+                if balance == 0:
+                    logger.warning(f"No tokens found for owner {owner} in merchant {merchant_address}; skipping")
+                    return
+                
+                logger.debug(f"Found {balance} token(s) owned by {owner} in merchant contract {merchant_address}")
+                
+                # Enumerate token IDs by probing. Start at 1 and check up to balance + buffer
+                # (in case some tokens were transferred away)
+                MAX_SCAN = min(balance + 5, 20)  # Reasonable upper limit
+                for tid in range(1, MAX_SCAN + 1):
+                    try:
+                        # Check if this token exists and has merchant data
+                        merchant_contract.functions.merchants(tid).call()
+                        
+                        # Also verify this token is owned by our target owner
+                        token_owner = merchant_contract.functions.ownerOf(tid).call()
+                        if token_owner.lower() == owner.lower():
+                            discovered_token_ids.append(tid)
+                            
+                        # Stop if we've found all tokens indicated by balance
+                        if len(discovered_token_ids) >= balance:
+                            break
+                            
+                    except Exception:
+                        # Token doesn't exist or other error, continue scanning
+                        continue
+                        
+            except Exception as e:
+                logger.warning(f"Could not enumerate tokens via balanceOf: {e}. Falling back to simple probe.")
+                # Fallback: simple probe of token ID 1
                 try:
-                    # probe merchants(tid) - will throw if not present
-                    merchant_contract.functions.merchants(tid).call()
-                    discovered_token_ids.append(tid)
+                    merchant_contract.functions.merchants(1).call()
+                    discovered_token_ids = [1]
                 except Exception:
-                    break
+                    pass
 
             if not discovered_token_ids:
                 logger.warning(f"No token IDs found for merchant contract {merchant_address}; skipping")
@@ -374,13 +407,16 @@ class MerchantAgent:
                 ).build_transaction({
                     'from': account.address,
                     'nonce': nonce,
-                    'gas': 300000,
+                    'gas': 500000,  # Sufficient gas for addItem
                     'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
             elif action == "buy":
+                # Quantity defaults to 1, price_wei is unit price from decision engine
                 quantity = details.get("quantity", 1)
-                total_price = details.get("price_wei", 0) * quantity
+                unit_price_wei = details.get("price_wei", 0)
+                total_price = unit_price_wei * quantity
+                
                 tx = merchant_contract.functions.buyItem(
                     token_id,
                     details["item_index"],
@@ -389,7 +425,7 @@ class MerchantAgent:
                     'from': account.address,
                     'value': total_price,
                     'nonce': nonce,
-                    'gas': 200000,
+                    'gas': 2000000,  # Increased gas limit for buyItem
                     'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
@@ -401,7 +437,7 @@ class MerchantAgent:
                 ).build_transaction({
                     'from': account.address,
                     'nonce': nonce,
-                    'gas': 200000,
+                    'gas': 300000,  # Sufficient gas for restock
                     'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             
