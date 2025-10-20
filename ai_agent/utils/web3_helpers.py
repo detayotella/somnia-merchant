@@ -28,13 +28,32 @@ class Web3Helper:
 
     def __init__(self, config: Dict[str, Any]) -> None:
         self.config = config
-        self.web3 = Web3(Web3.HTTPProvider(config["rpc_url"]))
         
-        if not self.web3.is_connected():
-            raise ConnectionError(f"Unable to connect to RPC: {config['rpc_url']}")
+        # Create Web3 instance with timeout settings
+        provider = Web3.HTTPProvider(
+            config["rpc_url"],
+            request_kwargs={'timeout': 60}
+        )
+        self.web3 = Web3(provider)
         
-        logger.info(f"Connected to blockchain at {config['rpc_url']}")
-        logger.info(f"Chain ID: {self.web3.eth.chain_id}")
+        # Test connection with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                block_number = self.web3.eth.block_number
+                logger.info(f"Connected to blockchain at {config['rpc_url']}")
+                logger.info(f"Chain ID: {self.web3.eth.chain_id}")
+                logger.info(f"Current block: {block_number}")
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise ConnectionError(
+                        f"Unable to connect to RPC after {max_retries} attempts: {config['rpc_url']}\n"
+                        f"Error: {str(e)}"
+                    )
+                logger.warning(f"Connection attempt {attempt + 1} failed, retrying...")
+                import time
+                time.sleep(2)
         
         # Load both factory and merchant contracts
         self.factory_contract = self._load_factory_contract()

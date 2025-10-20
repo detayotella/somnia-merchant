@@ -3,6 +3,7 @@
   "contract_address": "0xc9ec0e2eA1a44928b1d5AA3D0e117569CC1e756b",
   "factory_address": "0xA59c20a794D389Fac2788cB1e41D185093443D36",
   "merchant_owner": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
+  "use_factory": false,
   "network": "somnia-testnet",
   "private_key_env": "AI_AGENT_PRIVATE_KEY",
   "poll_interval_seconds": 300,
