@@ -29,7 +29,7 @@ export default function MerchantList() {
     );
   }
 
-  if (!merchants || merchants.length === 0) {
+  if (!merchants || !Array.isArray(merchants) || merchants.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-mint/20 bg-surface/40 p-12 text-center">
         <Store className="mx-auto mb-4 h-12 w-12 text-textMuted opacity-50" />
