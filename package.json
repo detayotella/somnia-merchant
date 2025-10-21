@@ -1,7 +1,0 @@
-{
-  "name": "somnia-merchant-root",
-  "private": true,
-  "engines": {
-    "node": "20.x"
-  }
-}
