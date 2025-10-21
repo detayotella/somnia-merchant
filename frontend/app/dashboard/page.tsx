@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Store, Package, TrendingUp } from "lucide-react";
 import { useMerchantStore } from "../../store/useMerchantStore";
@@ -9,29 +9,62 @@ import { ActivityFeed } from "../../components/ActivityFeed";
 import MerchantList from "../../components/MerchantList";
 import { Layout } from "../../components/Layout";
 import { DeploymentNotice } from "../../components/DeploymentNotice";
-import { formatEther } from "viem";
+
+interface DashboardStats {
+  merchantCount: number;
+  totalItems: number;
+  totalProfit: number;
+  merchantStats: Array<{
+    address: string;
+    itemCount: number;
+    profit: number;
+  }>;
+}
 
 export default function DashboardPage() {
-  const { merchants, activities } = useMerchantStore();
+  const { activities } = useMerchantStore();
+  const [stats, setStats] = useState<DashboardStats>({
+    merchantCount: 0,
+    totalItems: 0,
+    totalProfit: 0,
+    merchantStats: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const totals = useMemo(() => {
-    const totalProfit = merchants.reduce((acc, merchant) => acc + Number(formatEther(merchant.profitWei)), 0);
-    const totalItems = merchants.reduce((acc, merchant) => acc + merchant.items.length, 0);
-    return {
-      totalProfit,
-      totalItems,
-      merchantCount: merchants.length
+  // Fetch aggregated dashboard stats from API
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [merchants]);
 
-  const chartData = useMemo(
-    () =>
-      merchants.map((merchant) => ({
-        label: `#${merchant.tokenId}`,
-        value: Number(formatEther(merchant.profitWei))
-      })),
-    [merchants]
-  );
+    fetchStats();
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const totals = useMemo(() => ({
+    totalProfit: stats.totalProfit,
+    totalItems: stats.totalItems,
+    merchantCount: stats.merchantCount,
+  }), [stats]);
+
+  const chartData = useMemo(() => {
+    return stats.merchantStats.map((merchant, index) => ({
+      label: `#${index + 1}`,
+      value: merchant.profit,
+    }));
+  }, [stats]);
 
   return (
     <Layout>
@@ -82,7 +115,7 @@ export default function DashboardPage() {
           <StatCard
             icon={<TrendingUp className="h-6 w-6" />}
             title="Total Profit"
-            value={`${totals.totalProfit.toFixed(4)} Ξ`}
+            value={`${totals.totalProfit.toFixed(4)} ETH`}
             subtitle="Lifetime earnings"
             color="gold"
           />

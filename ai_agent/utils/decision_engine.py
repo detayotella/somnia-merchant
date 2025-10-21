@@ -189,18 +189,18 @@ Trading Rules:
 2. If an item has quantity = 0, restock it (action: "restock")
 3. If wallet balance allows AND price is reasonable, buy items to increase inventory (action: "buy")
 4. If profit > {min_profit_threshold} ETH, withdraw it (action: "withdraw")
-5. If market conditions suggest it, adjust prices (action: "reprice")
-6. Otherwise, do nothing (action: "none")
+5. Otherwise, do nothing (action: "none")
+
+NOTE: Price adjustments (reprice) are NOT available in the V2 contract.
 
 Respond ONLY with valid JSON in this exact format:
 {{
-  "action": "none|add_item|restock|buy|reprice|withdraw",
+  "action": "none|add_item|restock|buy|withdraw",
   "details": {{
     "item_index": 0,
     "item_name": "Example Item",
     "price_wei": 250000000000000000,
-    "quantity": 5,
-    "new_price_wei": 300000000000000000
+    "quantity": 5
   }},
   "reasoning": "Clear explanation of why you made this decision"
 }}
@@ -272,19 +272,20 @@ What is your decision?"""
                 }
         
         # Rule 5: Reprice if market signal detected (simplified)
-        market_signal = self._get_market_signal()
-        if market_signal > 0.2:
-            for item in inventory:
-                if item["active"] and item["quantity"] > 0:
-                    new_price_wei = int(item["price_wei"] * 1.1)  # 10% increase
-                    return {
-                        "action": "reprice",
-                        "details": {
-                            "item_index": item["index"],
-                            "new_price_wei": new_price_wei,
-                        },
-                        "reasoning": f"Market signal ({market_signal}) indicates demand. Increasing price by 10%.",
-                    }
+        # DISABLED: repriceItem function not available in V2 contract
+        # market_signal = self._get_market_signal()
+        # if market_signal > 0.2:
+        #     for item in inventory:
+        #         if item["active"] and item["quantity"] > 0:
+        #             new_price_wei = int(item["price_wei"] * 1.1)  # 10% increase
+        #             return {
+        #                 "action": "reprice",
+        #                 "details": {
+        #                     "item_index": item["index"],
+        #                     "new_price_wei": new_price_wei,
+        #                 },
+        #                 "reasoning": f"Market signal ({market_signal}) indicates demand. Increasing price by 10%.",
+        #             }
         
         # Default: no action
         return {

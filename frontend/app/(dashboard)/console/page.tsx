@@ -56,9 +56,9 @@ export default function ConsolePage() {
       onLogs: (logs) => {
         logs.forEach((log) => {
           addActivity({
-            id: `${log.blockHash}-${log.logIndex}`,
-            message: `Item ${log.args?.item} sold for ${formatEther(log.args?.price ?? 0n)}Ξ`,
-            timestamp: Math.floor(Date.now() / 1000)
+            id: log.transactionHash,
+            message: `Item ${log.args?.item} sold for ${formatEther(log.args?.price ?? 0n)} ETH`,
+            timestamp: Date.now(),
           });
         });
       }

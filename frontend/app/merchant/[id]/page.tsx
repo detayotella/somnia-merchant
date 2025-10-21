@@ -125,7 +125,7 @@ export default function MerchantDetailPage() {
                   <div>
                     <p className="text-xs text-textMuted">Profit Accrued</p>
                     <p className="font-display text-xl font-bold text-gold">
-                      {formatEther(merchant.profitWei)}Ξ
+                      {formatEther(merchant.profitWei)} ETH
                     </p>
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export default function MerchantDetailPage() {
                     </div>
                     <div className="text-right">
                       <div className="font-display text-xl font-bold text-gold">
-                        {formatEther(item.priceWei)}Ξ
+                        {formatEther(item.priceWei)} ETH
                       </div>
                       <p className="text-xs text-textMuted">per item</p>
                     </div>

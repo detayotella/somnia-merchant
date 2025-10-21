@@ -1,24 +1,320 @@
 {
   "is_running": true,
-  "last_poll_time": "2025-10-20T13:59:24.197251+00:00",
+  "last_poll_time": "2025-10-21T12:36:55.204190+00:00",
   "agent_address": "0x2331B698eeE9bEaE834B06B6bDCb2DF94c9a01A3",
-  "wallet_balance_eth": 0.533219632,
-  "total_decisions_made": 1,
+  "wallet_balance_eth": 1.42298043,
+  "total_decisions_made": 30,
   "recent_decisions": [
     {
-      "timestamp": "2025-10-20T13:54:35.412008+00:00",
-      "action": "buy",
-      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "timestamp": "2025-10-21T12:26:11.404058+00:00",
+      "action": "add_item",
+      "merchant_id": "0x4a4f0be5bA880355a83DC610F098b8F174E273c5:1",
       "details": {
         "item_index": 0,
-        "price_wei": 10000000000000000
+        "item_name": "Mighty Elixir",
+        "price_wei": 100000000000000000,
+        "quantity": 5
       },
-      "reasoning": "Item 'Health Potion' is affordable (0.0100 ETH) and within budget. Buying to stimulate economy.",
+      "reasoning": "The inventory is empty, so I need to add an item to start trading. I'm adding 'Mighty Elixir' with a price of 0.1 ETH and an initial quantity of 5.",
+      "merchant_address": "0x4a4f0be5bA880355a83DC610F098b8F174E273c5:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:26:03.898352+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Mighty Sword",
+        "price_wei": 50000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is currently empty. According to trading rule #1, when the inventory is empty, we need to add a new item to the inventory. Adding 'Mighty Sword' as the first item.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:25:56.490837+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "Wallet balance is sufficient, inventory is not empty, no items need restocking, and profit is not above the withdrawal threshold. Therefore, no action is necessary.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:20:39.328997+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_name": "Mighty Sword",
+        "price_wei": 20000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is currently empty. Therefore, the first trading rule dictates that we must add a new item to the inventory to begin trading. I've chosen a relatively low-priced item, the Mighty Sword, with a quantity of 5 to start.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:20:24.904638+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "Inventory is not empty, no items need restocking, wallet balance is sufficient, and profit is not greater than 0.2 ETH. Therefore, no action is required.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:15:08.902684+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_name": "Steel Sword",
+        "price_wei": 100000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "Inventory is currently empty. Adding a new item to start trading.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:14:57.613178+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The inventory is not empty, no items have a quantity of 0, the profit is not above 0.2 ETH, and the wallet has sufficient ETH to operate as is. Therefore, no action is required at this time.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:09:44.177610+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Iron Sword",
+        "price_wei": 100000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is currently empty, so the first rule dictates that we should add a new item to the inventory. I am adding an 'Iron Sword' with an initial quantity of 5 and a price of 0.1 ETH.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:09:13.927821+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The shop is currently functioning well. The inventory is not empty, no items have a quantity of 0, profit is not above the withdrawal threshold, and wallet balance is sufficient. Therefore, no action is required at this time.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:03:59.440838+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Potion",
+        "price_wei": 20000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is empty. Therefore, the trading rule #1 dictates that we must add an item to the inventory to start trading. I chose 'Potion' as a reasonable item to start with a price that's affordable given the current wallet balance.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T12:03:41.338423+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The AI Agent Shop has a positive wallet balance and active inventory. The accumulated profit is 0, so withdrawing is not necessary. There are items in stock, so adding or restocking isn't required. The wallet balance is not significantly high enough to justify buying more items, especially since there are already 48 and 30 units of the existing items respectively. Therefore, the best course of action is to do nothing.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:58:13.216829+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Steel Sword",
+        "price_wei": 100000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is currently empty. Therefore, according to trading rule #1, we must add a new item to the inventory. A 'Steel Sword' is added with a reasonable price and quantity.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:58:03.170847+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The inventory is not empty and no item has a quantity of 0. The wallet balance is 1.4768 ETH and the accumulated profit is 0 ETH, which is not greater than 0.2 ETH. Therefore, no action is required at this time.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:52:25.350722+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Potion",
+        "price_wei": 250000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is empty, so I need to add a new item to begin trading. I'm adding 'Potion' as the item.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:52:02.291037+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The inventory is not empty and no items have zero quantity. The profit is also not above 0.2 ETH, so there is nothing to withdraw. Finally, the wallet balance is not sufficient to buy a significant amount of new items, so I will wait for more profit to accumulate.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:46:05.006052+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Mighty Sword",
+        "price_wei": 100000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is currently empty. According to rule #1, a new item needs to be added to the inventory to start the trading process. I'm adding 'Mighty Sword' as the first item with a reasonable starting price.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:45:54.909875+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "Wallet balance is 1.4856 ETH, and no immediate action is required based on the trading rules. Inventory is not empty, no item has quantity 0, profit is not greater than 0.2 ETH, and wallet balance is reasonable so no buy actions are needed.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:40:36.671182+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_name": "Sword of Might",
+        "price_wei": 100000000000000000,
+        "quantity": 10
+      },
+      "reasoning": "The inventory is empty, so I need to add a new item to start trading. I'm adding the Sword of Might with a price of 0.1 ETH and initial quantity of 10.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:40:30.215731+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The wallet balance is sufficient, and both items are in stock. The profit is not high enough to trigger a withdraw. Therefore, no action is needed at this time.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:35:18.525269+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Healing Potion",
+        "price_wei": 20000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is empty. Therefore, according to rule 1, I need to add a new item to the inventory. I will add 'Healing Potion' with a price of 0.02 ETH and quantity of 5 to start the inventory.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:34:28.579730+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The wallet balance is sufficient, and both items have positive quantities. The accumulated profit is also below the threshold for withdrawal. Therefore, no action is required at this time.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:23:34.033663+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Basic Potion",
+        "price_wei": 100000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is empty. The first trading rule is to add a new item.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:23:20.977692+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The inventory is not empty, no item has a quantity of 0, the profit is not above 0.2 ETH, and buying new items is not necessary since we have sufficient stock. Therefore, no action is required.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T11:15:20.845295+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The shop is not empty, no items have zero quantity, the wallet balance is not high enough to justify buying more inventory given current stock levels, and the profit is below the withdrawal threshold. Therefore, no action is needed.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T10:32:00.868234+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Mighty Sword",
+        "price_wei": 100000000000000000,
+        "quantity": 10
+      },
+      "reasoning": "The inventory is empty. According to trading rule #1, I must add an item to the inventory to begin trading. I'm adding 'Mighty Sword' with a reasonable price of 0.1 ETH and a quantity of 10.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T10:31:27.012333+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "Current wallet balance is sufficient, inventory is not empty, no items have zero quantity, and profit is not above the withdraw threshold. Therefore, no action is required.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T10:26:07.459145+00:00",
+      "action": "add_item",
+      "merchant_id": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1",
+      "details": {
+        "item_index": 0,
+        "item_name": "Mighty Potion",
+        "price_wei": 20000000000000000,
+        "quantity": 5
+      },
+      "reasoning": "The inventory is currently empty. Therefore, according to trading rule #1, I need to add a new item to the inventory to begin trading.",
+      "merchant_address": "0xd8b6A69B8215Cbde82040b970f26D7125b30DEAa:1"
+    },
+    {
+      "timestamp": "2025-10-21T10:25:39.908942+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The shop has a healthy inventory of both Health Potions and Mana Potions, and the wallet balance is sufficient. The accumulated profit is still 0, so there is no need to withdraw. Therefore, no action is required at this time.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T10:20:15.357463+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The inventory is not empty, no items have a quantity of 0, the profit is not greater than 0.2 ETH, and the wallet balance is sufficient to avoid immediate risk. Therefore, no action is necessary.",
+      "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
+    },
+    {
+      "timestamp": "2025-10-21T10:15:21.404091+00:00",
+      "action": "none",
+      "merchant_id": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1",
+      "details": {},
+      "reasoning": "The inventory is not empty, no item has a quantity of 0, profit is not greater than 0.2 ETH, and there is no specific buy strategy implemented beyond restocking when quantity is zero. Therefore, no action is needed.",
       "merchant_address": "0x2e44Fc5b5B322c7eaA13a2DFB8D41605a892Bfc5:1"
     }
   ],
   "merchants_monitored": 0,
   "auto_trading_enabled": true,
   "connection_healthy": true,
-  "uptime_seconds": 303.9239602088928
+  "uptime_seconds": 8516.524314641953
 }

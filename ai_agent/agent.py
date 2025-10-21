@@ -171,8 +171,7 @@ class MerchantAgent:
             # Log the AI's decision
             logger.info(f"🤖 AI Decision for {name}: action='{action}', reasoning='{reasoning}'")
             
-            # Always log decision to internal history (even "hold")
-            self._log_decision_internal(action, token_id, details, reasoning)
+            logger.info(f"🤖 AI Decision for merchant #{token_id}: action='{action}', reasoning='{reasoning}'")
             
             # Execute action
             tx_hash = None
@@ -185,11 +184,11 @@ class MerchantAgent:
                     
                     # Send to backend
                     self.notifier.send_decision(action, token_id, details, reasoning, tx_hash)
-                    
-                    # Track decision
-                    self._log_decision_internal(action, token_id, details, reasoning)
                 else:
                     logger.warning(f"Action '{action}' failed to execute for merchant #{token_id}")
+            
+            # Always log the decision (including "none" actions) so frontend can see AI reasoning
+            self._log_decision_internal(action, token_id, details, reasoning)
         
         except Exception as e:
             logger.error(f"Error processing merchant #{token_id}: {e}")
@@ -319,8 +318,9 @@ class MerchantAgent:
                             self.agent_manager.memory_manager.record_decision(
                                 f"{merchant_address}:{token_id}", action, details, reasoning, success=False
                             )
-
-                        self._log_decision_internal(action, f"{merchant_address}:{token_id}", details, reasoning)
+                    
+                    # Always log the decision (including "none" actions) so frontend can see AI reasoning
+                    self._log_decision_internal(action, f"{merchant_address}:{token_id}", details, reasoning)
 
                 except Exception as e:
                     logger.error(f"Error processing token {token_id} for merchant {merchant_address}: {e}")
@@ -363,13 +363,6 @@ class MerchantAgent:
                     details["quantity"],
                 )
             
-            elif action == "reprice":
-                return self.web3_helper.reprice_item(
-                    token_id,
-                    details["item_index"],
-                    details["new_price_wei"],
-                )
-            
             elif action == "withdraw":
                 return self.web3_helper.withdraw_profit(token_id)
             
@@ -388,7 +381,7 @@ class MerchantAgent:
         Args:
             merchant_contract: Web3 contract instance for the merchant
             token_id: Token ID within the merchant contract
-            action: Action to execute (add_item, restock, reprice, etc.)
+            action: Action to execute (add_item, buy, restock, withdraw)
             details: Action details/parameters
         
         Returns:
@@ -438,18 +431,6 @@ class MerchantAgent:
                     'from': account.address,
                     'nonce': nonce,
                     'gas': 300000,  # Sufficient gas for restock
-                    'gasPrice': self.web3_helper.web3.eth.gas_price,
-                })
-            
-            elif action == "reprice":
-                tx = merchant_contract.functions.repriceItem(
-                    token_id,
-                    details["item_index"],
-                    details["new_price_wei"]
-                ).build_transaction({
-                    'from': account.address,
-                    'nonce': nonce,
-                    'gas': 150000,
                     'gasPrice': self.web3_helper.web3.eth.gas_price,
                 })
             

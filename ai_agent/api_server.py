@@ -24,7 +24,7 @@ STATUS_FILE = Path(__file__).resolve().parent / "agent_status.json"
 class AgentDecision(BaseModel):
     timestamp: str
     action: str
-    merchant_id: int
+    merchant_id: str  # Changed to str to support factory format "0xAddress:1"
     details: Dict[str, Any]
     reasoning: str
 
